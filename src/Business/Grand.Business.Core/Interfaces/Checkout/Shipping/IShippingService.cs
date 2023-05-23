@@ -61,10 +61,6 @@ namespace Grand.Business.Core.Interfaces.Checkout.Shipping
             string allowedShippingRateMethodSystemName = "", Store store = null);
 
 
-        Task<ParcelModelRoot> CreateParcel(Customer customer, IList<ShoppingCartItem> cart, Address shippingAddress, int methodId, string shipmentMethodName, string sysName);
-        Task<ParcelModelRoot> CreateLable(string customerName, int parcelId, int methodId, string shipmentMethodName, string sysName);
-        Task<PickupRecord> CreatePickUpRequest(Customer customer, IList<ShoppingCartItem> cart, Address shippingAddress,string pickUpfrom, string pickUpto, string sysName);
-
 
     }
 }

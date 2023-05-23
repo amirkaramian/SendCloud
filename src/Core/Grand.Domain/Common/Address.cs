@@ -99,6 +99,6 @@
         /// <summary>
         /// Gets or sets the UnitNumber
         /// </summary>
-        public string UnitNumber { get; set; }
+
     }
 }

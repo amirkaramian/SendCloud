@@ -1,11 +1,11 @@
 ﻿using Grand.Infrastructure;
 using Grand.Infrastructure.Plugins;
-using Shipping.SendCloud;
+using Widgets.SendCloud;
 
 [assembly: PluginInfo(
-    FriendlyName = "Shipping by SendCloud",
-    Group = "Shipping rate",
-    SystemName = SendCloudShippingDefaults.ProviderSystemName,
+    FriendlyName = "Send Cloud",
+    Group = "Widgets",
+    SystemName = SendCloudDefaults.ProviderSystemName,
     SupportedVersion = GrandVersion.SupportedPluginVersion,
     Author = "Revotec",
     Version = "2.1.1"

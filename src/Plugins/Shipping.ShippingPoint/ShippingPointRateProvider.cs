@@ -159,20 +159,6 @@ namespace Shipping.ShippingPoint
             return await Task.FromResult("Plugins.ShippingPoint.Points");
         }
 
-        public async Task<ParcelModelRoot> CreateParcel(GetShippingOptionRequest getShippingOptionRequest, int methodId, string methodName)
-        {
-            return await Task.FromResult(new ParcelModelRoot());
-        }
-
-        public async Task<ParcelModelRoot> CreateLable(int parcelId, string name, int shipmentId, string shipmentName)
-        {
-            return await Task.FromResult(new ParcelModelRoot());
-        }
-
-        public async Task<PickupRecord> CreatePickUpRequest(GetShippingOptionRequest getShippingOptionRequest)
-        {
-            return await Task.FromResult(new PickupRecord());
-        }
 
         public ShippingRateCalculationType ShippingRateCalculationType => ShippingRateCalculationType.Off;
 

@@ -4,9 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using ThirdParty.Json.LitJson;
 
-namespace Grand.Domain.Shipping
+namespace Shipping.SendCloud.Domain
 {
     public class AddressDivided
     {
@@ -108,7 +107,7 @@ namespace Grand.Domain.Shipping
     {
         public string description { get; set; }
         public int quantity { get; set; }
-        public string weight { get; set; }
+        public double weight { get; set; }
         public string value { get; set; }
         public string hs_code { get; set; }
         public string origin_country { get; set; }
@@ -120,12 +119,12 @@ namespace Grand.Domain.Shipping
         public object return_message { get; set; }
     }
 
-    public class Properties
-    {
-        public string size { get; set; }
-        public string color { get; set; }
-        public string internal_storage { get; set; }
-    }
+    //public class Properties
+    //{
+    //    public string size { get; set; }
+    //    public string color { get; set; }
+    //    public string internal_storage { get; set; }
+    //}
 
     public class ParcelModelRoot
     {

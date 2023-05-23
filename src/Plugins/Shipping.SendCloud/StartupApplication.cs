@@ -15,14 +15,14 @@ namespace Shipping.SendCloud
             services.AddScoped<IShippingSendCloudService, ShippingSendCloudService>();
             services.AddScoped<IShippingRateCalculationProvider, SendCloudShippingCalcPlugin>();
 
-            services.AddHttpClient("SendCloudUrl",
-            options =>
-            {
-                var authenticationString = $"{configuration.GetValue<string>("SendCloudApi:ClientId")}:{configuration.GetValue<string>("SendCloudApi:ClientSecret")}";
-                var base64EncodedAuthenticationString = Convert.ToBase64String(ASCIIEncoding.UTF8.GetBytes(authenticationString));
-                options.BaseAddress = new Uri(configuration.GetValue<string>("SendCloudApi:SendCloudUrl"));
-                options.DefaultRequestHeaders.Add("Authorization", "Basic " + base64EncodedAuthenticationString);
-            });
+            //services.AddHttpClient("SendCloudUrl",
+            //options =>
+            //{
+            //    var authenticationString = $"{configuration.GetValue<string>("SendCloudApi:ClientId")}:{configuration.GetValue<string>("SendCloudApi:ClientSecret")}";
+            //    var base64EncodedAuthenticationString = Convert.ToBase64String(ASCIIEncoding.UTF8.GetBytes(authenticationString));
+            //    options.BaseAddress = new Uri(configuration.GetValue<string>("SendCloudApi:SendCloudUrl"));
+            //    options.DefaultRequestHeaders.Add("Authorization", "Basic " + base64EncodedAuthenticationString);
+            //});
         }
 
         public int Priority => 10;

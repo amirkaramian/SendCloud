@@ -26,8 +26,7 @@ namespace Grand.Domain.Shipping
         public string Description { get; set; }
         public int Id { get; set; }
 
-        public ParcelModelRoot ParcelModel { get; set; }
-        public PickupRecord PickupRecord { get; set; }
+        
     }
 
 }

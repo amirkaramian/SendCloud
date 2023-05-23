@@ -83,6 +83,7 @@ namespace Grand.Business.Checkout.Services.Shipping
         /// <returns>Shipping methods</returns>
         public virtual async Task<IList<ShippingMethod>> GetAllShippingMethods(string filterByCountryId = "", Customer customer = null)
         {
+            await GetSendCloudShipmentMethods();
             var shippingMethods = await _cacheBase.GetAsync(CacheKey.SHIPPINGMETHOD_ALL, async () =>
             {
                 var query = from sm in _shippingMethodRepository.Table

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Grand.Domain.Shipping
+namespace Shipping.SendCloud.Domain
 {
     public class PickupRecord
     {
@@ -31,5 +31,4 @@ namespace Grand.Domain.Shipping
         public string telephone { get; set; }
         public string total_weight { get; set; }
     }
-
 }

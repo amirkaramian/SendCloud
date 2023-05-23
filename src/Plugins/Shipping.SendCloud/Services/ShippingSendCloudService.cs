@@ -1,7 +1,9 @@
 ﻿using Grand.Domain;
 using Grand.Domain.Data;
 using Grand.Domain.Shipping;
+using Grand.Infrastructure;
 using Grand.Infrastructure.Caching;
+using Grand.Web.Common;
 using Newtonsoft.Json;
 using Shipping.SendCloud.Domain;
 using Shipping.SendCloud.Models;
@@ -22,17 +24,24 @@ namespace Shipping.SendCloud.Services
         private readonly IRepository<ShippingSendCloudRecord> _sbwRepository;
         private readonly ICacheBase _cacheBase;
         private readonly HttpClient _httpClient;
-
+        private readonly WidgetCloudSettings _cloudSettings;
+        private readonly IWorkContext _workContext;
         #endregion
 
         #region Ctor
 
         public ShippingSendCloudService(ICacheBase cacheBase,
-            IRepository<ShippingSendCloudRecord> sbwRepository, IHttpClientFactory httpClientFactory)
+            IRepository<ShippingSendCloudRecord> sbwRepository, IHttpClientFactory httpClientFactory, IWorkContext workContext)
         {
             _cacheBase = cacheBase;
             _sbwRepository = sbwRepository;
-            _httpClient = httpClientFactory.CreateClient("SendCloudUrl");
+            _workContext = workContext;
+            _cloudSettings = GetSetting();
+            var authenticationString = $"{_cloudSettings.ClientId}:{_cloudSettings.ClientSecret}";
+            var base64EncodedAuthenticationString = Convert.ToBase64String(ASCIIEncoding.UTF8.GetBytes(authenticationString));
+            _httpClient = httpClientFactory.CreateClient();
+            _httpClient.BaseAddress = new Uri(_cloudSettings.SendCloudUrl);
+            _httpClient.DefaultRequestHeaders.Add("Authorization", "Basic " + base64EncodedAuthenticationString);
         }
 
         #endregion
@@ -223,7 +232,29 @@ namespace Shipping.SendCloud.Services
             return JsonConvert.DeserializeObject<PickupRecord>(json);
 
         }
+        private WidgetCloudSettings GetSetting()
+        {
+            var httpClientHandler = new HttpClientHandler();
+            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+            {
+                return true;
+            };
+            var httpClientConfig = new HttpClient(httpClientHandler);
+            var storeLocation = _workContext.CurrentHost.Url.TrimEnd('/');
 
+            var url = $"{storeLocation}/Plugins/WidgetsSendCloudInfo/GetSendCloudInfo";
+            var response = httpClientConfig.GetAsync(url).GetAwaiter().GetResult();
+            response.EnsureSuccessStatusCode();
+            var json = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            var data = JsonConvert.DeserializeObject<(bool, Dictionary<string, string>)>(json);
+
+            return new WidgetCloudSettings() {
+                ClientId = data.Item2["ClientId"],
+                ClientSecret = data.Item2["ClientSecret"],
+                SendCloudUrl = data.Item2["SendCloudUrl"]
+            };
+
+        }
         #endregion
     }
 

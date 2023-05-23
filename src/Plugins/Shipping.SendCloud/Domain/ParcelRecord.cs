@@ -47,7 +47,7 @@ namespace Shipping.SendCloud.Domain
         public int Id { get;  set; }
     }
 
-    public class ParcelItem
+    public class ParcelRecordItem
     {
         public string description { get; set; }
         public string hs_code { get; set; }

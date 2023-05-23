@@ -230,34 +230,7 @@ namespace Grand.Business.Checkout.Services.Shipping
             return result;
         }
 
-        public async Task<ParcelModelRoot> CreateParcel(Customer customer, IList<ShoppingCartItem> cart, Address shippingAddress,
-            int methodId, string shipmentMethodName, string sysName)
-        {
-            var shippingOptionRequest = await CreateShippingOptionRequests(customer, cart, shippingAddress, null);
-            var provider = LoadShippingRateCalculationProviderBySystemName(sysName);
-            if (provider == null)
-                return null;
-            return await provider.CreateParcel(shippingOptionRequest, methodId, shipmentMethodName);
-        }
-        public async Task<ParcelModelRoot> CreateLable(string customerName, int parcelId, int methodId, string shipmentMethodName, string sysName)
-        {
-            var provider = LoadShippingRateCalculationProviderBySystemName(sysName);
-            if (provider == null)
-                return null;
-            var resp = await provider.CreateLable(parcelId, customerName, methodId, shipmentMethodName);
-            return resp;
-
-        }
-        public async Task<PickupRecord> CreatePickUpRequest(Customer customer, IList<ShoppingCartItem> cart, Address shippingAddress, string pickUpfrom, string pickUpto, string sysName)
-        {
-            var shippingOptionRequest = await CreateShippingOptionRequests(customer, cart, shippingAddress, null);
-            var provider = LoadShippingRateCalculationProviderBySystemName(sysName);// "Shipping.SendCloud");
-            if (provider == null)
-                return null;
-            shippingOptionRequest.pickup_from = pickUpfrom;
-            shippingOptionRequest.pickup_until = pickUpto;
-            return await provider.CreatePickUpRequest(shippingOptionRequest);
-        }
+       
         #endregion
     }
 }

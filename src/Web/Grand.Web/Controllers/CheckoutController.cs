@@ -779,14 +779,14 @@ namespace Grand.Web.Controllers
                     throw new Exception("Selected shipping method can't be loaded");
 
                 // Create parcel
-                var sysName = model.ShippingOption.Split(new[] { ":" }, StringSplitOptions.RemoveEmptyEntries)[1];
-                var method = shippingOptions.FirstOrDefault(x => model.ShippingOption.Contains(x.ShippingRateProviderSystemName));
-                if (method != null)
-                {
-                    var parcel = await _shippingService.CreateParcel(customer, cart, customer.ShippingAddress, method.Id, model.ShippingOption, sysName);
-                    if (parcel != null)
-                        shippingOption.ParcelModel = parcel;
-                }
+                //var sysName = model.ShippingOption.Split(new[] { ":" }, StringSplitOptions.RemoveEmptyEntries)[1];
+                //var method = shippingOptions.FirstOrDefault(x => model.ShippingOption.Contains(x.ShippingRateProviderSystemName));
+                //if (method != null)
+                //{
+                //    var parcel = await _shippingService.CreateParcel(customer, cart, customer.ShippingAddress, method.Id, model.ShippingOption, sysName);
+                //    if (parcel != null)
+                //        shippingOption.ParcelModel = parcel;
+                //}
                 //save
                 await _userFieldService.SaveField(customer, SystemCustomerFieldNames.SelectedShippingOption,
                      shippingOption, store.Id);
@@ -831,19 +831,21 @@ namespace Grand.Web.Controllers
                     throw new Exception("Selected payment method can't be parsed");
 
                 //Create lable
-                var customer = _workContext.CurrentCustomer;
-                var store = _workContext.CurrentStore;
-                var shippingOption = await customer.GetUserField<ShippingOption>(_userFieldService, SystemCustomerFieldNames.SelectedShippingOption, store.Id);
-
-                var parcel = shippingOption.ParcelModel.parcel;
-                var serviceName = _configuration.GetValue<string>("SendCloudApi:ServiceName");
-                var lable = await _shippingService.CreateLable(customer.GetFullName(), parcel.id, parcel.shipment.id, parcel.shipment.name, serviceName);
-                if (lable != null)
-                {
-                    shippingOption.ParcelModel = lable;
-                    await _userFieldService.SaveField(customer, SystemCustomerFieldNames.SelectedShippingOption,
-                        shippingOption, store.Id);
-                }
+                //var customer = _workContext.CurrentCustomer;
+                //var store = _workContext.CurrentStore;
+                //var shippingOption = await customer.GetUserField<ShippingOption>(_userFieldService, SystemCustomerFieldNames.SelectedShippingOption, store.Id);
+                //if (shippingOption.ParcelModel != null)
+                //{
+                //    var parcel = shippingOption.ParcelModel.parcel;
+                //    var serviceName = _configuration.GetValue<string>("SendCloudApi:ServiceName");
+                //    var lable = await _shippingService.CreateLable(customer.GetFullName(), parcel.id, parcel.shipment.id, parcel.shipment.name, serviceName);
+                //    if (lable != null)
+                //    {
+                //        shippingOption.ParcelModel = lable;
+                //        await _userFieldService.SaveField(customer, SystemCustomerFieldNames.SelectedShippingOption,
+                //            shippingOption, store.Id);
+                //    }
+                //}
                 //loyalty points
                 if (_loyaltyPointsSettings.Enabled)
                 {
@@ -1035,16 +1037,16 @@ namespace Grand.Web.Controllers
                 var placeOrderResult = await _mediator.Send(new PlaceOrderCommand());
                 if (placeOrderResult.Success)
                 {
-                    var hasPickupService = _configuration.GetValue<bool>("SendCloudApi:EnablePickup");
-                    if (hasPickupService)
-                    {
-                        var dateFrom = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.AddDays(1).Day, 8, 0, 0).ToString("s");
-                        var dateTo = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.AddDays(1).Day, 10, 0, 0).ToString("s");
-                        var serviceName = _configuration.GetValue<string>("SendCloudApi:ServiceName");
-                        shippingOption.PickupRecord = await _shippingService.CreatePickUpRequest(customer, cart, customer.ShippingAddress, dateFrom, dateTo, serviceName);
-                        await _userFieldService.SaveField(customer, SystemCustomerFieldNames.SelectedShippingOption,
-                             shippingOption, store.Id);
-                    }
+                    //var hasPickupService = _configuration.GetValue<bool>("SendCloudApi:EnablePickup");
+                    //if (hasPickupService)
+                    //{
+                    //    var dateFrom = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.AddDays(1).Day, 8, 0, 0).ToString("s");
+                    //    var dateTo = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.AddDays(1).Day, 10, 0, 0).ToString("s");
+                    //    var serviceName = _configuration.GetValue<string>("SendCloudApi:ServiceName");
+                    //    shippingOption.PickupRecord = await _shippingService.CreatePickUpRequest(customer, cart, customer.ShippingAddress, dateFrom, dateTo, serviceName);
+                    //    await _userFieldService.SaveField(customer, SystemCustomerFieldNames.SelectedShippingOption,
+                    //         shippingOption, store.Id);
+                    //}
                     _ = _customerActivityService.InsertActivity("PublicStore.PlaceOrder", "",
                         _workContext.CurrentCustomer, HttpContext.Connection?.RemoteIpAddress?.ToString(),
                         _translationService.GetResource("ActivityLog.PublicStore.PlaceOrder"),

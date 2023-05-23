@@ -49,9 +49,5 @@ namespace Grand.Business.Core.Interfaces.Checkout.Shipping
         /// </summary>
         Task<string> GetControllerRouteName();
 
-        Task<ParcelModelRoot> CreateParcel(GetShippingOptionRequest getShippingOptionRequest, int methodId, string methodName);
-        Task<ParcelModelRoot> CreateLable(int parcelId, string name, int shipmentId, string shipmentName);
-
-        Task<PickupRecord> CreatePickUpRequest(GetShippingOptionRequest getShippingOptionRequest);
     }
 }

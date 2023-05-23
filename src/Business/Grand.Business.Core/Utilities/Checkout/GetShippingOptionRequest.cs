@@ -62,8 +62,7 @@ namespace Grand.Business.Core.Utilities.Checkout
         /// </summary>
         public string StoreId { get; set; }
       
-        public string pickup_from { get; set; }
-        public string pickup_until { get; set; }
+
 
         #endregion
 

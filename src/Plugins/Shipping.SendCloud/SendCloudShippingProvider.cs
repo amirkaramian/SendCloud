@@ -22,6 +22,8 @@ using Shipping.SendCloud.Models;
 using DotLiquid.Util;
 using System.Net;
 using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using Newtonsoft.Json;
 
 namespace Shipping.SendCloud
 {
@@ -38,8 +40,9 @@ namespace Shipping.SendCloud
         private readonly ICurrencyService _currencyService;
         private readonly SendCloudShippingSettings _SendCloudShippingSettings;
         private readonly IShippingSendCloudService _shippingSendCloudService;
-        private readonly IConfiguration _configuration;
-
+        private readonly WidgetCloudSettings _cloudSettings;
+        private readonly HttpClient _httpClient;
+        private readonly ICountryService _countryService;
         #endregion
 
         #region Ctor
@@ -52,7 +55,7 @@ namespace Shipping.SendCloud
             ICheckoutAttributeParser checkoutAttributeParser,
             ICurrencyService currencyService,
             SendCloudShippingSettings SendCloudShippingSettings,
-            IShippingSendCloudService shippingSendCloudService, IConfiguration configuration)
+            IShippingSendCloudService shippingSendCloudService, HttpClient httpClient, ICountryService countryService)
         {
             _shippingMethodService = shippingMethodService;
             _workContext = workContext;
@@ -63,7 +66,14 @@ namespace Shipping.SendCloud
             _currencyService = currencyService;
             _SendCloudShippingSettings = SendCloudShippingSettings;
             _shippingSendCloudService = shippingSendCloudService;
-            _configuration = configuration;
+            var httpClientHandler = new HttpClientHandler();
+            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+            {
+                return true;
+            };
+            _httpClient = new HttpClient(httpClientHandler);
+            _cloudSettings = GetSetting();
+            _countryService = countryService;
         }
         #endregion
 
@@ -245,11 +255,14 @@ namespace Shipping.SendCloud
             var senderAddresses = await _shippingSendCloudService.GetSenderAddress();
             var sender = senderAddresses.sender_addresses.FirstOrDefault();
             if (sender == null)
-                throw new Exception("");
+                throw new Exception("invalid sender address");
+            var country = await _countryService.GetCountryById(getShippingOptionRequest.ShippingAddress.CountryId);
+            if (country == null)
+                throw new Exception("invalid country");
             var methods = await _shippingSendCloudService.GetShippingMethods(new Models.ShippingMethodModel() {
                 SenderAddress = sender.id,
                 FromPostal_code = sender.postal_code,
-                ToCountry = getShippingOptionRequest.CountryFrom.TwoLetterIsoCode,
+                ToCountry = country.TwoLetterIsoCode,
                 ToPostal_code = getShippingOptionRequest.Customer.Addresses.FirstOrDefault()?.ZipPostalCode
             });
             //var countryId = getShippingOptionRequest.CountryFrom.Id;
@@ -260,19 +273,25 @@ namespace Shipping.SendCloud
                 foreach (var item in getShippingOptionRequest.Items.GroupBy(x => x.ShoppingCartItem.WarehouseId).Select(x => x.Key))
                 {
 
-                    var _rate = await GetRate(weight, shippingMethod, sender.country, getShippingOptionRequest.CountryFrom.TwoLetterIsoCode);
+                    var _rate = await GetRate(weight, shippingMethod, sender.country, country.TwoLetterIsoCode);
                     if (_rate.HasValue)
                     {
                         rate ??= 0;
 
                         rate += _rate.Value;
+                        var parcel = await CreateParcel(getShippingOptionRequest, shippingMethod.id, shippingMethod.name, country.TwoLetterIsoCode);
+                        var lable = await CreateLable(parcel.parcel.id, getShippingOptionRequest.Customer.GetFullName(), shippingMethod.id, shippingMethod.name);
+                        if (_cloudSettings.EnablePickup)
+                        {
+                            var pickUp = CreatePickUpRequest(getShippingOptionRequest, country.TwoLetterIsoCode);
+                        }
                     }
                 }
 
                 if (rate is { })
                 {
                     var shippingOption = new ShippingOption {
-                        Id = shippingMethod.id,
+                        //  Id = shippingMethod.id,
                         Name = shippingMethod.name,
                         Description = shippingMethod.carrier,
                         Rate = await _currencyService.ConvertFromPrimaryStoreCurrency(rate.Value, _workContext.WorkingCurrency)
@@ -285,7 +304,7 @@ namespace Shipping.SendCloud
             return response;
         }
 
-        public async Task<ParcelModelRoot> CreateParcel(GetShippingOptionRequest getShippingOptionRequest, int methodId, string methodName)
+        public async Task<ParcelModelRoot> CreateParcel(GetShippingOptionRequest getShippingOptionRequest, int methodId, string methodName, string countryLetter)
         {
             var senderAddresses = await _shippingSendCloudService.GetSenderAddress();
             var parcel = new Parcel() {
@@ -295,9 +314,9 @@ namespace Shipping.SendCloud
                 telephone = getShippingOptionRequest.ShippingAddress.PhoneNumber,
                 address = getShippingOptionRequest.ShippingAddress.Address1,
                 address_2 = string.IsNullOrEmpty(getShippingOptionRequest.ShippingAddress.Address2) ? string.Empty : getShippingOptionRequest.ShippingAddress.Address2,
-                house_number = string.IsNullOrEmpty(getShippingOptionRequest.ShippingAddress.UnitNumber) ? "1" : getShippingOptionRequest.ShippingAddress.UnitNumber,
+                house_number = "1",
                 city = getShippingOptionRequest.ShippingAddress.City,
-                country = getShippingOptionRequest.CountryFrom.TwoLetterIsoCode,
+                country = countryLetter,
                 postal_code = getShippingOptionRequest.ShippingAddress.ZipPostalCode,
                 to_post_number = getShippingOptionRequest.ShippingAddress.ZipPostalCode,
                 customs_invoice_nr = "",
@@ -317,14 +336,14 @@ namespace Shipping.SendCloud
             foreach (var item in getShippingOptionRequest.Items)
             {
                 var procuct = await _productService.GetProductById(item.ShoppingCartItem.ProductId);
-                parcel.parcel_items.Add(new Domain.ParcelItem() {
+                parcel.parcel_items.Add(new ParcelItem() {
                     quantity = item.GetQuantity(),
                     weight = procuct.Weight,
                     description = procuct.FullDescription ?? procuct.Name,
                     value = procuct.Price.ToString(),
                     sku = procuct.Sku ?? "",
                     product_id = procuct.Id,
-                    properties = new Domain.Properties() {
+                    properties = new Properties() {
                         size = (procuct.Width * procuct.Height).ToString(),
                     },
                     hs_code = ""
@@ -346,8 +365,9 @@ namespace Shipping.SendCloud
             var resp = await _shippingSendCloudService.CreateLable(new LableRecord() { parcel = lable });
             return resp;
         }
-        public async Task<PickupRecord> CreatePickUpRequest(GetShippingOptionRequest getShippingOptionRequest)
+        public async Task<PickupRecord> CreatePickUpRequest(GetShippingOptionRequest getShippingOptionRequest,string countrycode)
         {
+
             var senderAddresses = await _shippingSendCloudService.GetSenderAddress();
             var request = new PickupRequestModel() {
                 name = getShippingOptionRequest.Customer.GetFullName(),
@@ -357,12 +377,12 @@ namespace Shipping.SendCloud
                 address = getShippingOptionRequest.ShippingAddress.Address1,
                 address_2 = string.IsNullOrEmpty(getShippingOptionRequest.ShippingAddress.Address2) ? string.Empty : getShippingOptionRequest.ShippingAddress.Address2,
                 city = getShippingOptionRequest.ShippingAddress.City,
-                country = getShippingOptionRequest.CountryFrom.TwoLetterIsoCode,
+                country = countrycode,
                 postal_code = getShippingOptionRequest.ShippingAddress.ZipPostalCode,
                 quantity = getShippingOptionRequest.Items.Sum(x => x.GetQuantity()),
-                pickup_from = getShippingOptionRequest.pickup_from,
-                pickup_until = getShippingOptionRequest.pickup_until,
-                carrier = _configuration.GetValue<string>("SendCloudApi:Carrier"),
+                pickup_from = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.AddDays(1).Day, 8, 0, 0).ToString("s"),
+                pickup_until = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.AddDays(1).Day, 10, 0, 0).ToString("s"),
+                carrier = _cloudSettings.Carrier
 
             };
             foreach (var item in getShippingOptionRequest.Items)
@@ -395,6 +415,26 @@ namespace Shipping.SendCloud
             return await Task.FromResult(false);
         }
 
+        private WidgetCloudSettings GetSetting()
+        {
+
+            var storeLocation = _workContext.CurrentHost.Url.TrimEnd('/');
+
+            var url = $"{storeLocation}/Plugins/WidgetsSendCloudInfo/GetSendCloudInfo";
+            var response = _httpClient.GetAsync(url).GetAwaiter().GetResult();
+            response.EnsureSuccessStatusCode();
+            var json = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            var data = JsonConvert.DeserializeObject<(bool, Dictionary<string, string>)>(json);
+
+            return new WidgetCloudSettings() {
+                ClientId = data.Item2["ClientId"],
+                ClientSecret = data.Item2["ClientSecret"],
+                SendCloudUrl = data.Item2["SendCloudUrl"],
+                Carrier = data.Item2["Carrier"],
+                EnablePickup = bool.Parse(data.Item2["EnablePickup"]),
+            };
+
+        }
         #endregion
 
         #region Properties
